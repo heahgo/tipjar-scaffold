@@ -3,7 +3,10 @@ import { sepolia } from "wagmi/chains";
 
 export const wagmiConfig = getDefaultConfig({
   appName: "TipJar",
-  projectId: "YOUR_WALLETCONNECT_PROJECT_ID", // https://cloud.walletconnect.com 에서 발급
+  projectId: "YOUR_WALLETCONNECT_PROJECT_ID",
   chains: [sepolia],
+  transports: {
+    [sepolia.id]: http("https://ethereum-sepolia-rpc.publicnode.com"),
+  },
   ssr: true,
 });
