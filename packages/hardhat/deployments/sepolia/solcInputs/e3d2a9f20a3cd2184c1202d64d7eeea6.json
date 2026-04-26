@@ -1,0 +1,35 @@
+{
+  "language": "Solidity",
+  "sources": {
+    "contracts/TipJar.sol": {
+      "content": "// SPDX-License-Identifier: UNLICENSED\npragma solidity ^0.8.13;\n\ncontract TipJar {\n    address public owner;\n    uint256 public minTip;\n    uint256 public totalReceived;\n\n    struct TipRecord {\n        address tipper;\n        uint256 amount;\n        string message;\n        uint256 timestamp;\n    }\n\n    TipRecord[] public tipHistory;\n    mapping(address => uint256) public totalTippedBy;\n\n    address public topTipper;\n    uint256 public topTipAmount;\n\n    event TipReceived(address indexed tipper, uint256 amount, string message);\n    event TipWithdrawn(address indexed owner, uint256 amount);\n    event OwnerChanged(address indexed oldOwner, address indexed newOwner);\n    event MinTipChanged(uint256 newMinTip);\n\n    error NotOwner();\n    error BelowMinTip();\n    error NoTips();\n    error ZeroAddress();\n    error TransferFailed();\n\n    constructor(uint256 _minTip) {\n        owner = msg.sender;\n        minTip = _minTip;\n    }\n\n    modifier onlyOwner() {\n        if (msg.sender != owner) revert NotOwner();\n        _;\n    }\n\n    receive() external payable {\n        _recordTip(msg.sender, msg.value, \"\");\n    }\n\n    function tip(string calldata message) public payable {\n        if (msg.value < minTip) revert BelowMinTip();\n        _recordTip(msg.sender, msg.value, message);\n    }\n\n    function _recordTip(address tipper, uint256 amount, string memory message) internal {\n        tipHistory.push(TipRecord(tipper, amount, message, block.timestamp));\n        totalTippedBy[tipper] += amount;\n        totalReceived += amount;\n\n        if (totalTippedBy[tipper] > topTipAmount) {\n            topTipper = tipper;\n            topTipAmount = totalTippedBy[tipper];\n        }\n\n        emit TipReceived(tipper, amount, message);\n    }\n\n    function withdrawTips() public onlyOwner {\n        uint256 bal = address(this).balance;\n        if (bal == 0) revert NoTips();\n        emit TipWithdrawn(owner, bal);\n        (bool ok, ) = payable(owner).call{value: bal}(\"\");\n        if (!ok) revert TransferFailed();\n    }\n\n    function getTipHistory() public view returns (TipRecord[] memory) {\n        return tipHistory;\n    }\n\n    function getTipCount() public view returns (uint256) {\n        return tipHistory.length;\n    }\n\n    function getBalance() public view returns (uint256) {\n        return address(this).balance;\n    }\n\n    function setMinTip(uint256 _minTip) public onlyOwner {\n        minTip = _minTip;\n        emit MinTipChanged(_minTip);\n    }\n\n    function transferOwnership(address newOwner) public onlyOwner {\n        if (newOwner == address(0)) revert ZeroAddress();\n        emit OwnerChanged(owner, newOwner);\n        owner = newOwner;\n    }\n}\n"
+    }
+  },
+  "settings": {
+    "optimizer": {
+      "enabled": true,
+      "runs": 200
+    },
+    "outputSelection": {
+      "*": {
+        "*": [
+          "abi",
+          "evm.bytecode",
+          "evm.deployedBytecode",
+          "evm.methodIdentifiers",
+          "metadata",
+          "devdoc",
+          "userdoc",
+          "storageLayout",
+          "evm.gasEstimates"
+        ],
+        "": [
+          "ast"
+        ]
+      }
+    },
+    "metadata": {
+      "useLiteralContent": true
+    }
+  }
+}
