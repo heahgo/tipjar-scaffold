@@ -37,7 +37,7 @@ export function OwnerPanel() {
         <button
           className="btn-danger"
           onClick={withdraw}
-          disabled={wPending || !balance.data || balance.data === 0n}
+          disabled={wPending || !balance.data || balance.data === BigInt(0)}
         >
           {wPending ? "⏳ 처리 중..." : "전액 출금"}
         </button>
