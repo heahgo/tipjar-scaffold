@@ -1,53 +1,38 @@
+"use client";
+
 import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { useAccount } from "wagmi";
 import deployedContracts from "../contracts/deployedContracts";
 
 const CONTRACT = deployedContracts[11155111].TipJar;
 
-// 공통 read hook
-export function useTipJarRead<T>(
-  functionName: string,
-  args?: readonly unknown[]
-) {
+export function useBalance() {
   return useReadContract({
     address: CONTRACT.address,
     abi: CONTRACT.abi,
-    functionName: functionName as never,
-    args: args as never,
-  }) as { data: T | undefined; isLoading: boolean; refetch: () => void };
+    functionName: "getBalance",
+  });
 }
 
-// 잔액
-export function useBalance() {
-  return useTipJarRead<bigint>("getBalance");
-}
-
-// 팁 내역
 export function useTipHistory() {
-  return useTipJarRead<
-    Array<{
-      tipper: `0x${string}`;
-      amount: bigint;
-      message: string;
-      timestamp: bigint;
-    }>
-  >("getTipHistory");
+  return useReadContract({
+    address: CONTRACT.address,
+    abi: CONTRACT.abi,
+    functionName: "getTipHistory",
+  });
 }
 
-// 통계
 export function useTipStats() {
-  const balance = useTipJarRead<bigint>("getBalance");
-  const totalReceived = useTipJarRead<bigint>("totalReceived");
-  const tipCount = useTipJarRead<bigint>("getTipCount");
-  const topTipper = useTipJarRead<`0x${string}`>("topTipper");
-  const topAmount = useTipJarRead<bigint>("topTipAmount");
-  const minTip = useTipJarRead<bigint>("minTip");
-  const owner = useTipJarRead<`0x${string}`>("owner");
-
+  const balance = useReadContract({ address: CONTRACT.address, abi: CONTRACT.abi, functionName: "getBalance" });
+  const totalReceived = useReadContract({ address: CONTRACT.address, abi: CONTRACT.abi, functionName: "totalReceived" });
+  const tipCount = useReadContract({ address: CONTRACT.address, abi: CONTRACT.abi, functionName: "getTipCount" });
+  const topTipper = useReadContract({ address: CONTRACT.address, abi: CONTRACT.abi, functionName: "topTipper" });
+  const topAmount = useReadContract({ address: CONTRACT.address, abi: CONTRACT.abi, functionName: "topTipAmount" });
+  const minTip = useReadContract({ address: CONTRACT.address, abi: CONTRACT.abi, functionName: "minTip" });
+  const owner = useReadContract({ address: CONTRACT.address, abi: CONTRACT.abi, functionName: "owner" });
   return { balance, totalReceived, tipCount, topTipper, topAmount, minTip, owner };
 }
 
-// write: tip
 export function useSendTip() {
   const { writeContract, data: hash, isPending, error } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
@@ -59,13 +44,12 @@ export function useSendTip() {
       functionName: "tip",
       args: [message],
       value: amount,
-    });
+    } as any);
   };
 
   return { sendTip, isPending, isConfirming, isSuccess, error };
 }
 
-// write: withdraw
 export function useWithdraw() {
   const { writeContract, data: hash, isPending } = useWriteContract();
   const { isSuccess } = useWaitForTransactionReceipt({ hash });
@@ -75,13 +59,12 @@ export function useWithdraw() {
       address: CONTRACT.address,
       abi: CONTRACT.abi,
       functionName: "withdrawTips",
-    });
+    } as any);
   };
 
   return { withdraw, isPending, isSuccess };
 }
 
-// write: setMinTip
 export function useSetMinTip() {
   const { writeContract, data: hash, isPending } = useWriteContract();
   const { isSuccess } = useWaitForTransactionReceipt({ hash });
@@ -92,13 +75,12 @@ export function useSetMinTip() {
       abi: CONTRACT.abi,
       functionName: "setMinTip",
       args: [amount],
-    });
+    } as any);
   };
 
   return { setMinTip, isPending, isSuccess };
 }
 
-// write: transferOwnership
 export function useTransferOwnership() {
   const { writeContract, data: hash, isPending } = useWriteContract();
   const { isSuccess } = useWaitForTransactionReceipt({ hash });
@@ -109,17 +91,20 @@ export function useTransferOwnership() {
       abi: CONTRACT.abi,
       functionName: "transferOwnership",
       args: [newOwner],
-    });
+    } as any);
   };
 
   return { transferOwnership, isPending, isSuccess };
 }
 
-// owner 여부 확인
 export function useIsOwner() {
   const { address } = useAccount();
-  const { data: owner } = useTipJarRead<`0x${string}`>("owner");
+  const { data: owner } = useReadContract({
+    address: CONTRACT.address,
+    abi: CONTRACT.abi,
+    functionName: "owner",
+  });
   return address && owner
-    ? address.toLowerCase() === owner.toLowerCase()
+    ? address.toLowerCase() === (owner as string).toLowerCase()
     : false;
 }
